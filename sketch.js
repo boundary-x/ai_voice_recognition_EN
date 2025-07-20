@@ -9,68 +9,68 @@ let isConnected = false;
 let bluetoothStatus = "Disconnected";
 
 let recognition;
-let transcript = ""; // 음성 인식 결과
-let recognitionStatus = "🕹️ 음성 인식을 시작하려면 버튼을 누르세요."; // 상태 안내 문구
-let feedbackEmoji = ""; // 이모지 피드백
-let sentData = ""; // 마이크로비트로 전송된 데이터
+let transcript = ""; // speech recognition result
+let recognitionStatus = "🕹️ Press the button to start voice recognition."; // status message
+let feedbackEmoji = ""; // emoji feedback
+let sentData = ""; // data sent to micro:bit
 
-// 음성 명령과 전송 데이터 매핑
+// Voice commands mapped to data
 const voiceCommands = {
-  forward: ["전진", "앞으로", "직진", "출발"],
-  backward: ["뒤로", "후진"],
-  stop: ["멈춰", "정지", "그만"],
-  left: ["좌회전", "왼쪽", "좌측", "좌로", "반시계"],
-  right: ["우회전", "오른쪽", "우측", "으로", "시계"],
-  ring: ["사이렌", "소리", "부저", "경보음"]
+  forward: ["forward", "go forward", "straight", "start"],
+  backward: ["backward", "go back", "reverse"],
+  stop: ["stop", "halt", "hold"],
+  left: ["left", "turn left"],
+  right: ["right", "turn right"],
+  ring: ["siren", "sound", "buzzer", "alarm"]
 };
 
-let userCommands = {}; // 사용자가 추가한 명령어를 저장하는 객체
+let userCommands = {}; // store user-added commands
 
 function setup() {
-  console.log("Setup function called"); // 디버깅용 로그
+  console.log("Setup function called"); // debug log
   const canvas = createCanvas(30, 30);
   canvas.parent("p5-container");
 
-  // STEP1: 블루투스 연결
+  // STEP1: Bluetooth connection
   createBluetoothUI();
 
-  // STEP2: 음성 인식 데이터 표
+  // STEP2: Voice command table
   createCommandTable();
 
-  // STEP3: 사용자 명령어 추가 UI
+  // STEP3: User command UI
   createUserCommandUI();
 
-  // STEP4: 음성 인식 제어
+  // STEP4: Voice recognition control
   createVoiceRecognitionUI();
 
-  // 음성 인식 객체 초기화
+  // Initialize speech recognition object
   setupVoiceRecognition();
 }
 
 /**
- * STEP1: 블루투스 연결 UI 생성
+ * STEP1: Create Bluetooth connection UI
  */
 function createBluetoothUI() {
-  console.log("Creating Bluetooth UI"); // 디버깅용 로그
+  console.log("Creating Bluetooth UI"); // debug log
   const statusElement = select("#bluetoothStatus");
   if (statusElement) {
-    statusElement.html(`상태: ${bluetoothStatus}`);
+    statusElement.html(`Status: ${bluetoothStatus}`);
   }
 
   const buttonContainer = select("#bluetooth-control-buttons");
   if (buttonContainer) {
-    const connectButton = createButton("🔗 블루투스 연결").addClass("start-button");
+    const connectButton = createButton("🔗 Connect").addClass("start-button");
     connectButton.mousePressed(connectBluetooth);
     buttonContainer.child(connectButton);
 
-    const disconnectButton = createButton("❌ 블루투스 연결 해제").addClass("stop-button");
+    const disconnectButton = createButton("❌ Disconnect").addClass("stop-button");
     disconnectButton.mousePressed(disconnectBluetooth);
     buttonContainer.child(disconnectButton);
   }
 }
 
 /**
- * STEP2: 음성 인식 데이터 표 생성
+ * STEP2: Create voice command table
  */
 function createCommandTable() {
   console.log("Creating Command Table"); // 디버깅용 로그
@@ -80,8 +80,8 @@ function createCommandTable() {
     tableContainer.child(table);
 
     const header = createElement("tr");
-    header.child(createElement("th", "음성 명령"));
-    header.child(createElement("th", "전송 데이터"));
+    header.child(createElement("th", "Voice Command"));
+    header.child(createElement("th", "Send Data"));
     table.child(header);
 
     Object.entries(voiceCommands).forEach(([command, phrases]) => {
@@ -96,19 +96,19 @@ function createCommandTable() {
 }
 
 /**
- * STEP3: 사용자 명령어 추가 UI
+ * STEP3: Add custom command UI
  */
 function createUserCommandUI() {
-  console.log("Creating User Command UI"); // 디버깅용 로그
+  console.log("Creating User Command UI"); // debug log
   const inputContainer = select("#user-command-ui");
   if (inputContainer) {
-    const commandInput = createInput().attribute("placeholder", "새로운 음성 명령");
+    const commandInput = createInput().attribute("placeholder", "New voice command");
     inputContainer.child(commandInput);
 
-    const dataInput = createInput().attribute("placeholder", "명령에 맞는 전송 데이터");
+    const dataInput = createInput().attribute("placeholder", "Data to send for command");
     inputContainer.child(dataInput);
 
-    const addButton = createButton("➕ 명령어 추가").addClass("start-button");
+    const addButton = createButton("➕ Add Command").addClass("start-button");
     addButton.mousePressed(() => {
       const command = commandInput.value().trim();
       const data = dataInput.value().trim();
@@ -119,7 +119,7 @@ function createUserCommandUI() {
         commandInput.value("");
         dataInput.value("");
       } else {
-        alert("명령어와 전송 데이터를 모두 입력해주세요.");
+        alert("Please enter both command and data.");
       }
     });
     inputContainer.child(addButton);
@@ -128,15 +128,14 @@ function createUserCommandUI() {
   }
 }
 
-// 명령어 테이블 업데이트
+// Update command table
 function updateCommandTable() {
-  const container = select("#command-table-container");
-  const table = container ? container.select("table") : null;
+  const table = select("table");
   if (table) {
     table.html("");
     const header = createElement("tr");
-    header.child(createElement("th", "음성 명령"));
-    header.child(createElement("th", "전송 데이터"));
+    header.child(createElement("th", "Voice Command"));
+    header.child(createElement("th", "Send Data"));
     table.child(header);
 
     Object.entries(voiceCommands).forEach(([command, phrases]) => {
@@ -156,29 +155,29 @@ function updateCommandTable() {
 }
 
 /**
- * STEP4: 음성 인식 제어 UI 생성
+ * STEP4: Create voice recognition control UI
  */
 function createVoiceRecognitionUI() {
-  console.log("Creating Voice Recognition UI"); // 디버깅용 로그
+  console.log("Creating Voice Recognition UI"); // debug log
   const buttonContainer = select("#voice-recognition-ui");
   if (buttonContainer) {
-    const startButton = createButton("🟢 음성 인식 시작").addClass("start-button");
+    const startButton = createButton("🟢 Start Recognition").addClass("start-button");
     startButton.mousePressed(() => {
       if (!isConnected) {
-        alert("블루투스가 연결되어 있지 않습니다. 블루투스를 연결하세요.");
+        alert("Bluetooth is not connected. Please connect first.");
       } else {
         recognition.start();
-        recognitionStatus = "음성 인식을 시작합니다. 말해보세요!";
+        recognitionStatus = "Starting voice recognition. Speak now!";
         feedbackEmoji = "🎤";
         displayRecognitionStatus();
       }
     });
     buttonContainer.child(startButton);
 
-    const stopButton = createButton("🔴 음성 인식 중지").addClass("stop-button");
+    const stopButton = createButton("🔴 Stop Recognition").addClass("stop-button");
     stopButton.mousePressed(() => {
       recognition.stop();
-      recognitionStatus = "음성 인식을 중지합니다.";
+      recognitionStatus = "Stopping voice recognition.";
       feedbackEmoji = "🤫";
       displayRecognitionStatus();
     });
@@ -190,7 +189,7 @@ function createVoiceRecognitionUI() {
 }
 
 /**
- * 음성 인식 상태와 결과를 화면에 표시
+ * Display recognition status and result
  */
 function displayRecognitionStatus() {
   const statusContainer = select("#status-container");
@@ -206,34 +205,34 @@ function displayRecognitionStatus() {
 
     let resultDiv = select("#recognitionResult");
     if (!resultDiv) {
-      resultDiv = createDiv(`🧠 결과: ${transcript}`).id("recognitionResult");
+      resultDiv = createDiv(`🧠 Result: ${transcript}`).id("recognitionResult");
       resultDiv.addClass("control-group");
       resultDiv.parent(statusContainer);
     } else {
-      resultDiv.html(`🧠 결과: ${transcript}`);
+      resultDiv.html(`🧠 Result: ${transcript}`);
     }
   }
 }
 
 /**
- * 마이크로비트 전송 데이터를 화면에 표시
+ * Display data sent to micro:bit
  */
 function displaySentData() {
   const statusContainer = select("#status-container");
   if (statusContainer) {
     let sentDataDiv = select("#sentDataDisplay");
     if (!sentDataDiv) {
-      sentDataDiv = createDiv(`📨 전송 데이터: ${sentData || "없음"}`).id("sentDataDisplay");
+      sentDataDiv = createDiv(`📨 Sent Data: ${sentData || "None"}`).id("sentDataDisplay");
       sentDataDiv.addClass("control-group");
       sentDataDiv.parent(statusContainer);
     } else {
-      sentDataDiv.html(`📨 전송 데이터: ${sentData || "없음"}`);
+      sentDataDiv.html(`📨 Sent Data: ${sentData || "None"}`);
     }
   }
 }
 
 /**
- * 음성 명령 처리
+ * Handle voice command
  */
 function handleVoiceCommand(command) {
   for (const [key, data] of Object.entries(userCommands)) {
@@ -260,7 +259,7 @@ function handleVoiceCommand(command) {
 }
 
 /**
- * 블루투스 연결
+ * Connect to Bluetooth
  */
 async function connectBluetooth() {
   try {
@@ -283,7 +282,7 @@ async function connectBluetooth() {
 }
 
 /**
- * 블루투스 연결 해제
+ * Disconnect Bluetooth
  */
 function disconnectBluetooth() {
   if (bluetoothDevice && bluetoothDevice.gatt.connected) {
@@ -299,12 +298,12 @@ function disconnectBluetooth() {
 }
 
 /**
- * 블루투스 상태 업데이트
+ * Update Bluetooth status
  */
 function updateBluetoothStatus() {
   const statusElement = select("#bluetoothStatus");
   if (statusElement) {
-    statusElement.html(`상태: ${bluetoothStatus}`);
+    statusElement.html(`Status: ${bluetoothStatus}`);
     if (bluetoothStatus.includes("Connected")) {
       statusElement.style("background-color", "#d0f0fd");
       statusElement.style("color", "#FE818D");
@@ -316,7 +315,7 @@ function updateBluetoothStatus() {
 }
 
 /**
- * 블루투스 데이터 전송
+ * Send Bluetooth data
  */
 async function sendBluetoothData(data) {
   if (!rxCharacteristic || !isConnected) {
@@ -335,37 +334,37 @@ async function sendBluetoothData(data) {
 }
 
 /**
- * 음성 인식 객체 초기화
+ * Initialize speech recognition object
  */
 function setupVoiceRecognition() {
   if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
     recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-    recognition.lang = "ko-KR";
+    recognition.lang = "en-US";
     recognition.interimResults = false;
     recognition.continuous = true;
 
     recognition.onresult = (event) => {
       const current = event.resultIndex;
       transcript = event.results[current][0].transcript.trim();
-      recognitionStatus = `인식된 결과: ${transcript}`;
+      recognitionStatus = `Recognized: ${transcript}`;
       handleVoiceCommand(transcript);
       displayRecognitionStatus();
     };
 
     recognition.onerror = (event) => {
       console.error("Speech Recognition Error:", event.error);
-      recognitionStatus = "음성 인식 중 오류가 발생했습니다. 다시 시도하세요.";
+      recognitionStatus = "An error occurred during speech recognition. Please try again.";
       displayRecognitionStatus();
     };
 
     recognition.onend = () => {
-      recognitionStatus = "음성 인식이 중지되었습니다.";
+      recognitionStatus = "Speech recognition stopped.";
       feedbackEmoji = "🤫";
       displayRecognitionStatus();
     };
   } else {
-    console.error("이 브라우저는 음성 인식을 지원하지 않습니다.");
-    const errorDiv = createDiv("이 브라우저는 음성 인식을 지원하지 않습니다.").addClass("control-group");
+    console.error("This browser does not support speech recognition.");
+    const errorDiv = createDiv("This browser does not support speech recognition.").addClass("control-group");
     errorDiv.style("color", "red");
     errorDiv.style("text-align", "center");
     select("#voice-recognition-group").child(errorDiv);
@@ -376,5 +375,5 @@ function draw() {
   background(220);
 }
 
-// 디버깅용: 모든 함수가 호출되는지 확인
+// Debug: verify all functions run
 console.log("Script loaded and running");
