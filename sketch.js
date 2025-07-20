@@ -130,7 +130,8 @@ function createUserCommandUI() {
 
 // 명령어 테이블 업데이트
 function updateCommandTable() {
-  const table = select("table");
+  const container = select("#command-table-container");
+  const table = container ? container.select("table") : null;
   if (table) {
     table.html("");
     const header = createElement("tr");
